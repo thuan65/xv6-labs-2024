@@ -1,7 +1,13 @@
 #include "kernel/types.h"
 #include "user/user.h"
 
-int main() {
+int main(int argc, char *argv[]) {
+
+    if (argc > 1) {
+        printf("Usage: pingpong\n");
+        exit(1);
+    }
+
     //There are 2 file descriptors
     int fd1[2]; 
     int fd2[2];
