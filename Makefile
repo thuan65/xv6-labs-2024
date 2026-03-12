@@ -200,6 +200,7 @@ UPROGS=\
 	$U/_cp\
 	$U/_du\
 	$U/_tree\
+	$U/_diff\
 
 
 

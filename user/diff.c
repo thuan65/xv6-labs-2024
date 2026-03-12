@@ -1,23 +1,27 @@
 #include "kernel/types.h"
 #include "kernel/stat.h"
-#include "kernel/fcntl.h"
-#include "user/user.h"
-#include <stdbool.h>
+#include "user/user.h" 
+#include "kernel/fcntl.h" //For O_RDONLY
+#include <stdbool.h> //For the bool true false
 
 /*
-  demo_line: Minh hoạ đọc dữ liệu theo DÒNG (line-based I/O).
-  Dùng để làm các bài cần xử lý theo dòng: diff, rgrep, xargs (đọc input từng dòng), ...
+ * diff compare the contents of two files line-by-line.
+ *
+ * - Standard read() calls may return data in arbitrary chunks.
+ * - Provide feedback (like line numbers) and buffer characters
+ * until a newline '\n' is encountered.
+ *
+ * Supported Modes:
+ * - Default: Displays the specific line numbers and content differences.
+ * - Quiet (-q): Only reports whether files differ without showing details.
+ *
+ * Usage:
+ * diff <file1> <file2>      (Standard mode)
+ * diff -q <file1> <file2>   (Quiet mode)
+ *
+ */
 
-  Vì sao cần đọc theo dòng?
-  - read(fd, buf, n) có thể trả về đoạn dữ liệu cắt ngang dòng.
-  - Với bài cần "line number" hoặc so sánh theo dòng, ta cần gom đến '\n'.
-
-  Cú pháp:
-    demo_line          (đọc stdin)
-    demo_line <file>   (đọc file)
-
-  Cách làm đơn giản (phù hợp Lab01): read từng ký tự 1 byte cho đến '\n' hoặc EOF.
-*/
+#define MAX_LINE 256
 
 static int
 readline(int fd, char *buf, int max)
@@ -48,48 +52,29 @@ readline(int fd, char *buf, int max)
   return i;
 }
 
-int
-main(int argc, char *argv[])
-{
-  int fd1 = 0; // mặc định stdin
-  int fd2 = 0;
-
-//   if (argc == 2) {
-//     fd = open(argv[1], O_RDONLY);
-//     if (fd < 0) {
-//       fprintf(2, "demo_line: cannot open %s\n", argv[1]);
-//       exit(1);
-//     }
-//   } else if (argc > 2) {
-//     fprintf(2, "usage: demo_line [file]\n");
-//     exit(1);
-//   }
-
-  fd1 = open(argv[1], O_RDONLY);
-  fd2 = open(argv[2], O_RDONLY);
-
-  if (argc == 4) {
-    char mystrc[] = "-q";
-    if (strcmp(argv[1], mystrc) == 0) {
-        printf("...s");
-    }
-    else {
-        printf("...");
-        exit(1);
-    }
-  } 
-  
-  char buffer_line_file_1[256];
-  char buffer_line_file_2[256];
+void diff(char* file1, char* file2, int quiet) {//quite == 0 false , quiet == 1 true
+  int fd1, fd2;
+  char buffer_line_file_1[MAX_LINE], buffer_line_file_2[MAX_LINE];
   bool is_EOF_1 = false;
   bool is_EOF_2 = false;
-
+  int n1, n2;
+  bool isDiff = false;
   int lineNo = 1;
 
-  while (1) {
+  if ((fd1 = open(file1, O_RDONLY)) < 0) {
+    fprintf(2, "diff: cannot open %s\n", file1);
+    return;
+  }
+  if ((fd2 = open(file2, O_RDONLY)) < 0) {
+    close(fd1); //close fd1 if error
+    fprintf(2, "diff: cannot open %s\n", file2);
+    return;
+  }
 
+  while (1) {
+    //This block is for read line from two file 1
     if (is_EOF_1 == false) {
-      int n1 = readline(fd1, buffer_line_file_1, sizeof(buffer_line_file_1));
+      n1 = readline(fd1, buffer_line_file_1, sizeof(buffer_line_file_1));
       if (n1 < 0) {
         fprintf(2, "demo_line: read error\n");
         if (fd1 != 0) close(fd1);
@@ -99,9 +84,9 @@ main(int argc, char *argv[])
         is_EOF_1 = true;
       }
     }
-
+       //This block is for read line from two file 2
     if (is_EOF_2 == false) {
-      int n2 = readline(fd2, buffer_line_file_2, sizeof(buffer_line_file_2));
+      n2 = readline(fd2, buffer_line_file_2, sizeof(buffer_line_file_2));
       if (n2 < 0) {
         fprintf(2, "demo_line: read error\n");
         if (fd2 != 0) close(fd2);
@@ -111,39 +96,61 @@ main(int argc, char *argv[])
         is_EOF_2 = true;
       }
     }
-
-    if (is_EOF_1 == true && is_EOF_2 == true) {
-      break; //Both File end
+    
+    //Compare two line in file
+    if (n1 != n2 || strcmp(buffer_line_file_1, buffer_line_file_2) != 0) {
+      isDiff = true;
+    }
+    
+    //Immediately return if found diff in quiet mode
+    if (isDiff == true && quiet == 1) {
+      printf("diff: files differ\n");
+      if (fd1 != 0) close(fd1);
+      if (fd2 != 0) close(fd2);
+      return;
     }
 
-    if (is_EOF_1 == true) {
+    //Scenario if two file the same
+    if (is_EOF_1 == true && is_EOF_2 == true) {
+      break; 
+    }
+    else if (is_EOF_1 == true) {
       printf("f1: %d: < EOF", lineNo);
       printf("f2: %d: < %s", lineNo, buffer_line_file_2);
-      lineNo++;
-      continue;
     }
-
-    if (is_EOF_2 == true) {
+    else if (is_EOF_2 == true) {
       printf("f1: %d: < %s", lineNo, buffer_line_file_1);
       printf("f2: %d: < EOF", lineNo);
-      lineNo++;
-      continue;
     }
-
-    if (strcmp(buffer_line_file_1, buffer_line_file_2) == 0) {
-      lineNo++;
-      continue;
-    }
-    else {
+    else if (isDiff == true) {
       printf("f1: %d: < %s", lineNo, buffer_line_file_1);
       printf("f2: %d: < %s", lineNo, buffer_line_file_2);
     }
-
     lineNo++;
   }
 
   if (fd1 != 0) close(fd1);
   if (fd2 != 0) close(fd2);
+
+}
+
+int
+main(int argc, char *argv[])
+{
+
+  if (argc == 4 && strcmp(argv[1], "-q") == 0) {
+    //diff -q f1 f2
+    diff(argv[2], argv[3], 1);
+     
+  } else if (argc == 3) {
+    //diff f1 f2
+    diff(argv[1], argv[2], 10);
+  }
+  else {
+    //Error
+    printf("Usage: diff [-q] file1 file2\n");
+    exit(1);
+  }
 
   exit(0);
 }
