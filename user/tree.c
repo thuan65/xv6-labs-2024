@@ -51,7 +51,7 @@ void recursive_tree(char *path, int level, int max_depth, int only_dir, int last
     struct stat st;
 
     if (stat(path, &st) < 0) {
-        fprintf(2, "cannot get stat %s\n", path);
+        fprintf(2, "tree: cannot stat %s\n", path);
         return;
     } 
 
@@ -61,7 +61,7 @@ void recursive_tree(char *path, int level, int max_depth, int only_dir, int last
 
     // First pass: count printable children
     if ((fd = open(path, O_RDONLY)) < 0) {
-        fprintf(2, "cannot open %s\n", path);
+        fprintf(2, "tree: cannot open %s\n", path);
         return;
     }
 
@@ -75,7 +75,7 @@ void recursive_tree(char *path, int level, int max_depth, int only_dir, int last
 
     // Second pass: print and recurse
     if ((fd = open(path, O_RDONLY)) < 0) {
-        fprintf(2, "cannot open %s\n", path);
+        fprintf(2, "tree: cannot open %s\n", path);
         return;
     }
 
@@ -94,7 +94,7 @@ void recursive_tree(char *path, int level, int max_depth, int only_dir, int last
         build_chill_path(child_path, path, de.name);
 
         if (stat(child_path, &child_st) < 0) {
-            fprintf(2, "cannot get stat %s\n", child_path);
+            fprintf(2, "tree: cannot stat %s\n", child_path);
             continue;
         }
 
@@ -115,13 +115,15 @@ int main(int argc, char *argv[]) {
     int max_depth = 100;
     int only_dir = 0;
     int last_at_depth[100];
+    struct stat st;
 
     for (int i = 0; i < (sizeof(last_at_depth) / sizeof(last_at_depth[0])); i++) {
         last_at_depth[i] = 1;
     }
 
     if (argc > 5) {
-        fprintf(2, "Up to 5 arguments\n");
+        fprintf(2, "tree: too many arguments\n");
+        fprintf(2, "usage: tree [path] [-L depth] [-d]\n");
         exit(1);
     }
 
@@ -130,13 +132,29 @@ int main(int argc, char *argv[]) {
             only_dir = 1;
         } else if (strcmp(argv[i], "-L") == 0) {
             if (i + 1 >= argc) {
-                fprintf(2, "tree: -L requires depth argument\n");
+                fprintf(2, "tree: option -L requires depth argument\n");
+                fprintf(2, "usage: tree [path] [-L depth] [-d]\n");
                 exit(1);
             }
             max_depth = atoi(argv[++i]);
         } else if (argv[i][0] != '-') {
             path = argv[i];
+        } else {
+          fprintf(2, "tree: unrecognized option %s\n", argv[i]);
+          fprintf(2, "usage: tree [path] [-L depth] [-d]\n");
+          exit(1);
         }
+    }
+
+    if (stat(path, &st) < 0) {
+        fprintf(2, "tree: cannot stat %s\n", path);
+        exit(1);
+    }
+
+    if (st.type != T_DIR) {
+        fprintf(2, "tree: not a directory: %s\n", path);
+        fprintf(2, "usage: tree [path] [-L depth] [-d]\n");
+        exit(1);
     }
 
     printf("%s\n", path);
