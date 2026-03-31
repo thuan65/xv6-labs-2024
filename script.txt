@@ -1,0 +1,5 @@
+mkdir a
+echo bruh > a/b.txt
+mkdir a/aa
+echo ok > a/aa/c.txt
+mkdir z

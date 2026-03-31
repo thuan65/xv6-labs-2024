@@ -4,121 +4,160 @@
 #include "kernel/fcntl.h"
 #include "user/user.h"
 
-// In thụt lề theo level
-void print_prefix(int level) {
-  for (int i = 0; i < level; i++) {
-    printf("    ");
-  }
-  if (level > 0) {
-    printf("|-- ");
-  }
+void print_prefix(int level, int last_at_depth[]) {
+    for (int i = 1; i < level; i++) {
+        printf(last_at_depth[i] ? "    " : "│   ");
+    }
+    if (level > 0) {
+        printf(last_at_depth[level] ? "└── " : "├── ");
+    }
 }
 
-// Tạo đường dẫn đầy đủ: base/name (tức là tạo đường dẫn tuyệt đối cho mục con để đưa trở lại vào hàm duyệt cây thư mục)
-void build_path(char *buf, char *base, char *name) {
-  strcpy(buf, base);
-  char *p = buf + strlen(buf);
-  *p++ = '/';
-  strcpy(p, name);
+void build_chill_path(char *buffer, char *base, char *name) {
+    strcpy(buffer, base);
+    int len = strlen(buffer);
+    buffer[len] = '/';
+    strcpy(buffer + len + 1, name);
 }
 
-// Hàm đệ quy duyệt cây thư mục
-void tree_recursive(char *path, int level, int maxDepth, int onlyDir) {
+int validate_entry(char *path, struct dirent *de, int only_dir) {
+    if (de->inum == 0 || strcmp(de->name, ".") == 0 || strcmp(de->name, "..") == 0) {
+        return 0;
+    }
 
-  if (level > maxDepth) {
-    return;
-  }
+    char child_path[512];
+    struct stat child_st;
 
-  int fd;
-  struct dirent de;
-  struct stat st;
+    build_chill_path(child_path, path, de->name);
 
+    if (stat(child_path, &child_st) < 0) {
+        return 0;
+    }
 
-  if ((fd = open(path, O_RDONLY)) < 0) {
-    fprintf(2, "tree: cannot open %s\n", path);
-    return;
-  }
+    if (only_dir && child_st.type != T_DIR) {
+        return 0;
+    }
 
+    return 1;
+}
 
-  if (fstat(fd, &st) < 0) {
-    fprintf(2, "tree: cannot get stat %s\n", path);
+void recursive_tree(char *path, int level, int max_depth, int only_dir, int last_at_depth[]) {
+    if (level > max_depth) {
+        return;
+    }
+
+    int fd;
+    struct dirent de;
+    struct stat st;
+
+    if (stat(path, &st) < 0) {
+        fprintf(2, "tree: cannot stat %s\n", path);
+        return;
+    } 
+
+    if (st.type != T_DIR) {
+        return;
+    }
+
+    // First pass: count printable children
+    if ((fd = open(path, O_RDONLY)) < 0) {
+        fprintf(2, "tree: cannot open %s\n", path);
+        return;
+    }
+
+    int valid_entries = 0;
+    while (read(fd, &de, sizeof(de)) == sizeof(de)) {
+        if (validate_entry(path, &de, only_dir)) {
+            ++valid_entries;
+        }
+    }
     close(fd);
-    return;
-  }
 
-  // return nếu là file vì trong vòng lặp while đã in ra rồi
-  if (st.type != T_DIR) {
+    // Second pass: print and recurse
+    if ((fd = open(path, O_RDONLY)) < 0) {
+        fprintf(2, "tree: cannot open %s\n", path);
+        return;
+    }
+
+    int seen = 0;
+    while (read(fd, &de, sizeof(de)) == sizeof(de)) {
+        if (!validate_entry(path, &de, only_dir)) {
+            continue;
+        }
+
+        ++seen;
+        last_at_depth[level] = (seen == valid_entries);
+
+        char child_path[512];
+        struct stat child_st;
+
+        build_chill_path(child_path, path, de.name);
+
+        if (stat(child_path, &child_st) < 0) {
+            fprintf(2, "tree: cannot stat %s\n", child_path);
+            continue;
+        }
+
+        print_prefix(level, last_at_depth);
+        printf("%s\n", de.name);
+
+        if (child_st.type == T_DIR) {
+            recursive_tree(child_path, level + 1, max_depth, only_dir, last_at_depth);
+        }
+    }
+
     close(fd);
-    return;
-  }
-
-  // Đọc từng entry trong thư mục
-  while (read(fd, &de, sizeof(de)) == sizeof(de)) {
-
-    if (de.inum == 0) {
-      continue;
-    }
-
-    // Bỏ qua "." và ".." vì nó gây loop vô hạn khi đệ quy
-    if (strcmp(de.name, ".") == 0 || strcmp(de.name, "..") == 0) {
-      continue;
-    }
-
-    // Tạo đường dẫn đầy đủ cho entry con để lát đưa nó vào hàm đệ quy
-    char fullpath[512];
-    build_path(fullpath, path, de.name);
-
-
-    if (fstat(fd, &st) < 0) {
-      fprintf(2, "tree: cannot get stat %s\n", fullpath);
-      continue;
-    }
-
-
-    if (onlyDir && st.type != T_DIR) {
-      continue;
-    }
-
-
-    print_prefix(level);
-    printf("%s\n", de.name);
-
-
-    if (st.type == T_DIR) {
-      tree_recursive(fullpath, level + 1, maxDepth, onlyDir);
-    }
-  }
-
-  close(fd);
 }
 
 int main(int argc, char *argv[]) {
-  char *path = ".";
-  int maxDepth = 999;
-  int onlyDir = 0;
+    char *path = ".";
+    int level = 1;
+    int max_depth = 100;
+    int only_dir = 0;
+    int last_at_depth[100];
+    struct stat st;
 
-
-  for (int i = 1; i < argc; i++) {
-    if (strcmp(argv[i], "-d") == 0) {
-      onlyDir = 1;
-    } else if (strcmp(argv[i], "-L") == 0) {
-      if (i + 1 < argc) {
-        maxDepth = atoi(argv[i + 1]);
-        i++;
-      } else {
-        fprintf(2, "tree: -L requires depth argument\n");
-        exit(1);
-      }
-    } else if (argv[i][0] != '-') {
-      path = argv[i];
+    for (int i = 0; i < (sizeof(last_at_depth) / sizeof(last_at_depth[0])); i++) {
+        last_at_depth[i] = 1;
     }
-  }
 
+    if (argc > 5) {
+        fprintf(2, "tree: too many arguments\n");
+        fprintf(2, "usage: tree [path] [-L depth] [-d]\n");
+        exit(1);
+    }
 
-  printf("%s\n", path);
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-d") == 0) {
+            only_dir = 1;
+        } else if (strcmp(argv[i], "-L") == 0) {
+            if (i + 1 >= argc) {
+                fprintf(2, "tree: option -L requires depth argument\n");
+                fprintf(2, "usage: tree [path] [-L depth] [-d]\n");
+                exit(1);
+            }
+            max_depth = atoi(argv[++i]);
+        } else if (argv[i][0] != '-') {
+            path = argv[i];
+        } else {
+          fprintf(2, "tree: unrecognized option %s\n", argv[i]);
+          fprintf(2, "usage: tree [path] [-L depth] [-d]\n");
+          exit(1);
+        }
+    }
 
+    if (stat(path, &st) < 0) {
+        fprintf(2, "tree: cannot stat %s\n", path);
+        exit(1);
+    }
 
-  tree_recursive(path, 0, maxDepth - 1, onlyDir);
+    if (st.type != T_DIR) {
+        fprintf(2, "tree: not a directory: %s\n", path);
+        fprintf(2, "usage: tree [path] [-L depth] [-d]\n");
+        exit(1);
+    }
 
-  exit(0);
+    printf("%s\n", path);
+    recursive_tree(path, level, max_depth, only_dir, last_at_depth);
+    exit(0);
 }
