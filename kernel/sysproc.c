@@ -5,6 +5,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "ptree.h"
 
 uint64
 sys_exit(void)
@@ -90,4 +91,25 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+
+//Assume max here stand for the maxium process that the user want to see
+uint64 sys_ptree(void) {
+   struct ptreeinfo pbuff[NPROC];
+   struct proc *p = myproc();
+   int max;
+   uint64 addr;
+
+  argaddr(0, &addr);
+   argint(1, &max);
+  
+
+   int count = get_proc_info(pbuff, max);
+
+  if (copyout(p->pagetable, addr, (char*)& pbuff, sizeof(struct ptreeinfo) * count) < 0) {
+    return -1;
+  }
+
+  return count;
 }

@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "ptree.h"
 
 struct cpu cpus[NCPU];
 
@@ -692,4 +693,30 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+uint64 get_proc_info(struct ptreeinfo *buff, int max) {
+  int count = 0;
+  struct proc *p;
+
+  for (p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+
+    if (p->state != UNUSED) {
+      buff[count].pid = p->pid;
+      if (p->parent == 0) {
+        buff[count].ppid = 0;
+      }
+      else {
+        buff[count].ppid = p->parent->pid;
+      }
+      buff[count].state = p->state;
+      buff[count].memsize = p->sz;
+      safestrcpy(buff[count].name, p->name, sizeof(buff[count].name));
+      count++;
+    }
+    release(&p->lock);
+  }
+
+  return count;
 }
