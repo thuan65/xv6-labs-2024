@@ -6,6 +6,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "ptree.h"
+#include "sysinfo.h"
 
 uint64
 sys_exit(void)
@@ -119,4 +120,19 @@ uint64 sys_ptree(void) {
   }
 
   return ret_count;
+}
+uint64
+sys_sysinfo(void)
+{
+  uint64 addr;
+  struct proc *p = myproc();
+  struct sysinfo info;
+
+  argaddr(0, &addr);
+  info.freemem = freemem();
+  info.nproc = nproc();
+
+  if(copyout(p->pagetable, addr, (char *)&info, sizeof(info)) < 0)
+    return -1;
+  return 0;
 }

@@ -1,5 +1,6 @@
 struct stat;
 struct ptreeinfo;
+struct sysinfo;
 
 // system calls
 int fork(void);
@@ -23,6 +24,7 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int sysinfo(struct sysinfo *);
 
 int ptree(struct ptreeinfo *buf, int max);
 
