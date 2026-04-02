@@ -96,20 +96,27 @@ sys_uptime(void)
 
 //Assume max here stand for the maxium process that the user want to see
 uint64 sys_ptree(void) {
-   struct ptreeinfo pbuff[NPROC];
-   struct proc *p = myproc();
-   int max;
-   uint64 addr;
-
-  argaddr(0, &addr);
-   argint(1, &max);
+  int max;
+  argint(1, &max);
+  if (max <= 0) return -1;
   
+  uint64 addr;
+  argaddr(0, &addr);
 
-   int count = get_proc_info(pbuff, max);
+  static struct ptreeinfo pbuff[NPROC];
 
-  if (copyout(p->pagetable, addr, (char*)& pbuff, sizeof(struct ptreeinfo) * count) < 0) {
-    return -1;
+  int total_count = get_proc_info(pbuff, max);
+  int ret_count = (total_count > max) ? max : total_count; //The actual number of process in pbuff
+
+  if (total_count > max) {
+    printf("Warning: Data truncated! Showing %d of %d processes.\n", max, total_count);
+  }
+ 
+
+  struct proc *p = myproc();
+  if (copyout(p->pagetable, addr, (char*)& pbuff, sizeof(struct ptreeinfo) * ret_count) < 0) {
+    return -1;  
   }
 
-  return count;
+  return ret_count;
 }

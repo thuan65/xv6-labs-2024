@@ -696,27 +696,41 @@ procdump(void)
 }
 
 uint64 get_proc_info(struct ptreeinfo *buff, int max) {
-  int count = 0;
+  int actual_count = 0; //Total of acutal process
+  int limit = (max < NPROC) ? max : NPROC;
   struct proc *p;
-
+  
   for (p = proc; p < &proc[NPROC]; p++) {
-    acquire(&p->lock);
+    if (actual_count >= limit) break;
 
+    acquire(&p->lock);
     if (p->state != UNUSED) {
-      buff[count].pid = p->pid;
+      buff[actual_count].pid = p->pid;
+      
       if (p->parent == 0) {
-        buff[count].ppid = 0;
+        buff[actual_count].ppid = 0;
       }
       else {
-        buff[count].ppid = p->parent->pid;
+        buff[actual_count].ppid = p->parent->pid;
       }
-      buff[count].state = p->state;
-      buff[count].memsize = p->sz;
-      safestrcpy(buff[count].name, p->name, sizeof(buff[count].name));
-      count++;
+
+      buff[actual_count].state = p->state;
+      buff[actual_count].memsize = p->sz;
+      safestrcpy(buff[actual_count].name, p->name, sizeof(buff[actual_count].name));
+      actual_count++;
+    }
+    release(&p->lock);
+
+  }
+
+  //Continue to count the rest of the process
+  for (; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if (p->state != UNUSED) {
+      actual_count++;
     }
     release(&p->lock);
   }
 
-  return count;
+  return actual_count;
 }
