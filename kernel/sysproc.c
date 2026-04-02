@@ -79,8 +79,6 @@ sys_kill(void)
   return kill(pid);
 }
 
-// return how many clock tick interrupts have occurred
-// since start.
 uint64
 sys_uptime(void)
 {
@@ -90,4 +88,11 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+uint64 sys_trace(void) {
+  int bitmask;
+  argint(0, &bitmask);
+  myproc()->trace_mask = bitmask;
+  return 0;
 }

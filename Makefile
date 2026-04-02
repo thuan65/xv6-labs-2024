@@ -201,6 +201,7 @@ UPROGS=\
 	$U/_du\
 	$U/_tree\
 	$U/_diff\
+	$U/_trace\
 
 
 
