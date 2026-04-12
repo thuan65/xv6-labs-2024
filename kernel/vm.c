@@ -102,6 +102,27 @@ for(int level = 2; level > 0; level--) {
 return &pagetable[PX(0, va)];
 }
 
+int
+pgaccess(pagetable_t pagetable, uint64 start_va, int npage, uint32 *mask)
+{
+if(start_va >= MAXVA) {
+  panic("walk");
+}
+
+  for (int i = 0; i < npage; i++) {
+    uint64 va = start_va * i * PGSIZE;
+    pte_t * pte = walk(pagetable, va, 0);
+
+    if (pte != 0 && (*pte & PTE_V) && (*pte & PTE_A)) {
+      *mask &= (1 << i);
+      *pte &= ~PTE_A;
+    }
+  }
+  
+  return 0;
+}
+
+
 // Look up a virtual address, return the physical address,
 // or 0 if not mapped.
 // Can only be used to look up user pages.

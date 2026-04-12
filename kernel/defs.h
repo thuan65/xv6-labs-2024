@@ -179,6 +179,8 @@ int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);
 void vmprint(pagetable_t);
 void vmprintHelper(pagetable_t, int);
+int
+pgaccess(pagetable_t, uint64, int, uint32 *);
 
 // plic.c
 void            plicinit(void);

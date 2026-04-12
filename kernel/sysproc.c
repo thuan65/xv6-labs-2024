@@ -134,9 +134,29 @@ sys_sysinfo(void)
     return -1;
   return 0;
 }
+
 uint64 sys_trace(void) {
   int bitmask;
   argint(0, &bitmask);
   myproc()->trace_mask = bitmask;
+  return 0;
+}
+
+uint64
+sys_pgacess(void)
+{
+  uint64 addr;
+  argaddr(1, &addr);
+
+  uint64 pg_address;
+  argaddr(0, &pg_address);
+
+  uint32 mask = 0;
+  struct proc *p = myproc();
+  pgaccess(p->pagetable, pg_address, 64, &mask);
+
+  if(copyout(p->pagetable, addr, (char *)&mask, sizeof(mask)) < 0) {
+    return -1;
+  }
   return 0;
 }
