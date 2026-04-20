@@ -143,20 +143,28 @@ uint64 sys_trace(void) {
 }
 
 uint64
-sys_pgacess(void)
+sys_pgaccess(void)
 {
-  uint64 addr;
-  argaddr(1, &addr);
-
+  //Virtual address of the start of the page
   uint64 pg_address;
   argaddr(0, &pg_address);
 
+  int number_of_page;
+  argint(1, &number_of_page);
+
+  //address of the buffer bitmask
+  uint64 addr;
+  argaddr(2, &addr);
+
   uint32 mask = 0;
   struct proc *p = myproc();
-  pgaccess(p->pagetable, pg_address, 64, &mask);
+
+  //function in file vm.c
+  pgaccess(p->pagetable, pg_address, number_of_page, &mask);
 
   if(copyout(p->pagetable, addr, (char *)&mask, sizeof(mask)) < 0) {
     return -1;
   }
+
   return 0;
 }

@@ -110,15 +110,14 @@ if(start_va >= MAXVA) {
 }
 
   for (int i = 0; i < npage; i++) {
-    uint64 va = start_va * i * PGSIZE;
+    uint64 va = start_va + (i * PGSIZE);
     pte_t * pte = walk(pagetable, va, 0);
 
     if (pte != 0 && (*pte & PTE_V) && (*pte & PTE_A)) {
-      *mask &= (1 << i);
+      *mask |= (1 << i);
       *pte &= ~PTE_A;
     }
   }
-  
   return 0;
 }
 
@@ -313,31 +312,31 @@ for(int i = 0; i < 512; i++){
 }
 }
 
-void
-printDept(int dept) {
-  for (int i = 0; i < dept; i++) {
-    printf(".. ");
-  }
-}
-
 void vmprintHelper(pagetable_t pagetable, int depth) {
   // there are 2^9 = 512 PTEs in a page table.
-
   for(int i = 0; i < 512; i++){
     pte_t pte = pagetable[i];
-    if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0){
-      // this PTE points to a lower-level page table.
-      uint64 child = PTE2PA(pte);
-      printDept(depth);
-      printf("%d: pte %p pa %p\n",i , (void *)pte ,(void*)child);
-      vmprintHelper((pagetable_t)child, depth + 1);
-    }
+
+    if(pte & PTE_V) {
+      //This point to a lower level page table
+      uint64 pa = PTE2PA(pte);
+
+      for (int j = 0; j <= depth; j++) 
+        printf(".. ");
+      printf("%d: pte %p pa %p\n",i , (void *)pte ,(void*)pa);
+      
+      //Go to the lower page table
+      if((pte & (PTE_R|PTE_W|PTE_X)) == 0) {
+        vmprintHelper((pagetable_t)pa, depth + 1);
+      }
+    } 
   }
 }
 
 void
 vmprint(pagetable_t pagetable)
 {
+  //Print the orgin table address
   printf("page table %p\n", (void *) pagetable);
   vmprintHelper(pagetable, 0);
 }

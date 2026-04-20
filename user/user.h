@@ -1,6 +1,9 @@
 struct stat;
 struct ptreeinfo;
 struct sysinfo;
+struct usyscall {
+    int pid;
+};
 
 // system calls
 int fork(void);
@@ -27,7 +30,8 @@ int uptime(void);
 int sysinfo(struct sysinfo *);
 int ptree(struct ptreeinfo *buf, int max);
 int trace(int);
-int pgacess(void* addr, int mask);
+int pgaccess(void* addr, int n ,uint32 *mask);
+int ugetpid(void);
 
 // ulib.c
 int stat(const char*, struct stat*);

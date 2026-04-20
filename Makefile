@@ -204,7 +204,8 @@ UPROGS=\
 	$U/_sysinfotest\
 	$U/_pstree\
 	$U/_trace\
-	$U/_testpgacess\
+	$U/_pgtbltest\
+	$U/_testpid\
 
 
 

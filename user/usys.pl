@@ -39,4 +39,4 @@ entry("uptime");
 entry("trace");
 entry("sysinfo");
 entry("ptree");
-entry("pgacess");
+entry("pgaccess");
