@@ -140,3 +140,30 @@ uint64 sys_trace(void) {
   myproc()->trace_mask = bitmask;
   return 0;
 }
+
+uint64
+sys_pgaccess(void)
+{
+  //Virtual address of the start of the page
+  uint64 pg_address;
+  argaddr(0, &pg_address);
+
+  int number_of_page;
+  argint(1, &number_of_page);
+
+  //address of the buffer bitmask
+  uint64 addr;
+  argaddr(2, &addr);
+
+  uint32 mask = 0; // Change to uint64 if need larger
+  struct proc *p = myproc();
+
+  //function in file vm.c
+  pgaccess(p->pagetable, pg_address, number_of_page, &mask);
+
+  if(copyout(p->pagetable, addr, (char *)&mask, sizeof(mask)) < 0) {
+    return -1;
+  }
+
+  return 0;
+}
