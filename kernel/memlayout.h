@@ -54,6 +54,8 @@
 //   fixed-size stack
 //   expandable heap
 //   ...
+//   USYSCALL (shared page for read-only user data)
 //   TRAPFRAME (p->trapframe, used by the trampoline)
 //   TRAMPOLINE (the same page as in the kernel)
+#define USYSCALL (TRAPFRAME - PGSIZE)
 #define TRAPFRAME (TRAMPOLINE - PGSIZE)
