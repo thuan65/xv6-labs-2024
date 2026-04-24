@@ -29,7 +29,6 @@ int sysinfo(struct sysinfo *);
 int ptree(struct ptreeinfo *buf, int max);
 int trace(int);
 int pgaccess(void* addr, int n ,uint32 *mask); 
-int ugetpid(void);
 
 // ulib.c
 int stat(const char*, struct stat*);

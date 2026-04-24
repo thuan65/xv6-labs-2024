@@ -59,6 +59,3 @@
 //   TRAMPOLINE (the same page as in the kernel)
 #define USYSCALL (TRAPFRAME - PGSIZE)
 #define TRAPFRAME (TRAMPOLINE - PGSIZE)
-
-// để tăng tốc syscall 
-#define USYSCALL (TRAPFRAME - PGSIZE)

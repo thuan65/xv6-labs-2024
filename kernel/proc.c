@@ -144,8 +144,6 @@ found:
     return 0;
   }
 
-  memset(p->usyscall, 0, PGSIZE);
-  p->usyscall->pid = p->pid;
 
   // An empty user page table.
   p->pagetable = proc_pagetable(p);
@@ -170,9 +168,6 @@ found:
 static void
 freeproc(struct proc *p)
 {
-  if(p->usyscall)
-    kfree((void*)p->usyscall);
-  p->usyscall = 0;
   if(p->trapframe)
     kfree((void*)p->trapframe);
   p->trapframe = 0;
