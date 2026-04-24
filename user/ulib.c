@@ -1,8 +1,10 @@
 #include "kernel/types.h"
+#include "kernel/riscv.h"
 #include "kernel/stat.h"
 #include "kernel/fcntl.h"
 #include "kernel/riscv.h"
 #include "kernel/memlayout.h"
+#include "kernel/usyscall.h"
 #include "user/user.h"
 
 //
@@ -95,6 +97,13 @@ stat(const char *n, struct stat *st)
   r = fstat(fd, st);
   close(fd);
   return r;
+}
+
+int
+ugetpid(void)
+{
+  struct usyscall *u = (struct usyscall *)USYSCALL;
+  return u->pid;
 }
 
 int
