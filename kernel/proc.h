@@ -1,5 +1,3 @@
-#include "usyscall.h"
-
 // Saved registers for kernel context switches.
 struct context {
   uint64 ra;
@@ -80,8 +78,6 @@ struct trapframe {
   /* 272 */ uint64 t5;
   /* 280 */ uint64 t6;
 };
-
-#include "usyscall.h"
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 

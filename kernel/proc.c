@@ -6,6 +6,7 @@
 #include "proc.h"
 #include "defs.h"
 #include "ptree.h"
+#include "usyscall.h"
 
 struct cpu cpus[NCPU];
 
@@ -248,7 +249,6 @@ proc_pagetable(struct proc *p)
 void
 proc_freepagetable(pagetable_t pagetable, uint64 sz)
 {
-  uvmunmap(pagetable, USYSCALL, 1, 0);
   uvmunmap(pagetable, TRAMPOLINE, 1, 0);
   uvmunmap(pagetable, TRAPFRAME, 1, 0);
   uvmunmap(pagetable, USYSCALL, 1, 0);

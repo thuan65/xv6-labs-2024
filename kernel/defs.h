@@ -9,6 +9,7 @@ struct sleeplock;
 struct stat;
 struct superblock;
 struct ptreeinfo;
+struct usyscall;
 
 // bio.c
 void            binit(void);

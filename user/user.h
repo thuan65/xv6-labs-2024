@@ -1,9 +1,7 @@
 struct stat;
 struct ptreeinfo;
 struct sysinfo;
-struct usyscall {
-  int pid;
-};
+struct usyscall;
 
 // system calls
 int fork(void);
