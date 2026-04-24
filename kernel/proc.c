@@ -144,13 +144,6 @@ found:
     return 0;
   }
 
-  // Allocate a usyscall page.
-  if((p->usyscall = (struct usyscall *)kalloc()) == 0){
-    freeproc(p);
-    release(&p->lock);
-    return 0;
-  }
-
   memset(p->usyscall, 0, PGSIZE);
   p->usyscall->pid = p->pid;
 
